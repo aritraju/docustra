@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+.uv/
+
+# Environment
+.env
+.env.local
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & Models
+data/
+models/
+*.pdf
+!tests/fixtures/*.pdf
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker volumes (local dev)
+docker/volumes/
+
+# Logs
+logs/
+*.log
