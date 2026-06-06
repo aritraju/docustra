@@ -59,7 +59,7 @@ def _normalise_content(msg: BaseMessage) -> BaseMessage:
 class _NormalisedGemini(ChatGoogleGenerativeAI):
     """ChatGoogleGenerativeAI that always returns str content with clean characters."""
 
-    def invoke(self, *args, **kwargs) -> BaseMessage:
+    def invoke(self, *args, **kwargs) -> BaseMessage:  # type: ignore[override]
         # Retry on 429 rate limit with exponential backoff
         for attempt in range(4):
             try:
@@ -70,6 +70,7 @@ class _NormalisedGemini(ChatGoogleGenerativeAI):
                     time.sleep(wait)
                 else:
                     raise
+        raise RuntimeError("Unreachable: all retry attempts exhausted")
 
 
 class BaseRAGStrategy(ABC):
@@ -111,7 +112,7 @@ def get_llm() -> BaseChatModel:
             temperature=0,
         )
     return ChatGroq(
-        model=settings.llm_model or "llama-3.3-70b-versatile",
+        model_name=settings.llm_model or "llama-3.3-70b-versatile",
         groq_api_key=settings.groq_api_key,
         temperature=0,
     )
