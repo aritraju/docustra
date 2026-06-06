@@ -37,9 +37,21 @@ def main():
         st.divider()
         st.subheader("📄 Ingest Document")
         uploaded = st.file_uploader("Upload PDF", type=["pdf"])
-        build_graph = st.checkbox("Build Knowledge Graph", value=True)
+        build_graph = st.checkbox(
+            "Build Knowledge Graph",
+            value=False,
+            help="Only needed for Graph RAG pattern. Slow on free API tier (1 LLM call per chunk).",
+        )
+        if build_graph:
+            st.caption("⚠️ Graph building is slow on free tier — expect 2-5 min for large PDFs.")
+
         if uploaded and st.button("Ingest"):
-            with st.spinner("Ingesting..."):
+            spinner_msg = (
+                "Ingesting + building knowledge graph (may take a few minutes)..."
+                if build_graph
+                else "Ingesting document..."
+            )
+            with st.spinner(spinner_msg):
                 r = requests.post(
                     f"{API_BASE}/ingest/upload",
                     files={"file": (uploaded.name, uploaded.getvalue(), "application/pdf")},
@@ -47,10 +59,12 @@ def main():
                 )
                 if r.status_code == 200:
                     data = r.json()
-                    st.success(
-                        f"✅ {data['chunks_indexed']} chunks indexed, "
-                        f"{data['graph_entities']} entities in graph"
-                    )
+                    msg = f"✅ {data['chunks_indexed']} chunks indexed"
+                    if build_graph:
+                        msg += f", {data['graph_entities']} graph entities"
+                    if data.get("images_found", 0):
+                        msg += f", {data['images_found']} images found"
+                    st.success(msg)
                 else:
                     st.error(f"Ingestion failed: {r.text}")
 
