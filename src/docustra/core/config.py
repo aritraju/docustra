@@ -48,11 +48,28 @@ class Settings(BaseSettings):
     api_reload: bool = False
     log_level: str = "INFO"
 
-    # RAG
+    # RAG — chunk sizes follow 500-800 token / 100 overlap recommendation
     retrieval_top_k: int = 5
     retrieval_score_threshold: float = 0.7
-    chunk_size: int = 512
-    chunk_overlap: int = 64
+    chunk_size: int = 650  # midpoint of 500-800 token target range
+    chunk_overlap: int = 100  # preserves sentence context across boundaries
+
+    # Hybrid retrieval (BM25 + vector)
+    bm25_weight: float = 0.4  # weight for BM25 in RRF fusion (vector gets 1 - bm25_weight)
+    hybrid_top_k: int = 20  # candidates fetched before reranking
+    enable_reranking: bool = True  # toggle cross-encoder reranking
+
+    # Cross-encoder reranker
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"  # free, ~80MB
+    reranker_top_n: int = 5  # final docs returned after reranking
+
+    # Prompt versioning
+    prompt_version: str = "v1"
+
+    # CI/CD evaluation thresholds — builds fail below these scores
+    eval_faithfulness_threshold: float = 0.70
+    eval_answer_relevancy_threshold: float = 0.70
+    eval_context_precision_threshold: float = 0.60
 
     ollama_base_url: str = "http://localhost:11434"
 

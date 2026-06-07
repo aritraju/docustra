@@ -1,0 +1,11 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HyDE — Hypothetical Document Embedding prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+hypothetical_doc:
+  system: |
+    Write a hypothetical document passage that would answer the following question.
+    Write it as if it were an excerpt from a formal enterprise document or report.
+    Be specific and factual in tone. Length: 2-3 sentences.
+  human: "{question}"

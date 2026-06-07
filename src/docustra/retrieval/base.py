@@ -21,6 +21,7 @@ class RAGPattern(StrEnum):
     BRANCHED = "branched"
     CORRECTIVE = "corrective"
     GRAPH = "graph"
+    HYBRID = "hybrid"
     HYDE = "hyde"
     MULTIMODAL = "multimodal"
     SELF_RAG = "self_rag"
@@ -31,6 +32,7 @@ class RAGResponse:
     answer: str
     pattern: RAGPattern
     sources: list[dict] = field(default_factory=list)
+    citations: list[dict] = field(default_factory=list)
     reasoning: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 

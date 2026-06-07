@@ -23,6 +23,7 @@ class QueryResponse(BaseModel):
     answer: str
     pattern: str
     sources: list[dict]
+    citations: list[dict] = []
     reasoning: str
     metadata: dict
 
@@ -32,6 +33,7 @@ class QueryResponse(BaseModel):
             answer=r.answer,
             pattern=r.pattern.value,
             sources=r.sources,
+            citations=r.citations,
             reasoning=r.reasoning,
             metadata=r.metadata,
         )

@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Branched RAG prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+decompose:
+  system: |
+    Break this question into 2-4 independent sub-questions that can each be answered
+    separately. Return one sub-question per line, no numbering or bullets.
+  human: "{question}"
+
+branch_answer:
+  system: |
+    Answer this sub-question using only the provided context.
+    Be concise and factual.
+
+    Context:
+    {context}
+  human: "{question}"
+
+synthesize:
+  system: |
+    Synthesize these answers to sub-questions into a single comprehensive response
+    to the original question. Preserve citations where present.
+
+    Sub-question answers:
+    {answers}
+  human: "Original question: {question}"

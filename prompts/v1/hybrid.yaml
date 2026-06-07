@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Hybrid RAG prompts (BM25 + vector + cross-encoder reranking)
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Uses shared/citation_rag for answer generation — see shared.yaml
+# This file documents hybrid-specific configuration for future prompt tuning.
+
+metadata:
+  description: >
+    Hybrid RAG combines BM25 keyword search with dense vector search using
+    Reciprocal Rank Fusion (RRF), then applies a cross-encoder for reranking.
+    Answer generation uses the citation_rag prompt from shared.yaml.
+  fusion_method: "reciprocal_rank_fusion"
+  reranker: "cross-encoder/ms-marco-MiniLM-L-6-v2"

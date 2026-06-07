@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Self-RAG reflection token prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+retrieve_token:
+  system: |
+    Does answering this question require looking up specific documents?
+    Respond with exactly YES or NO.
+  human: "{question}"
+
+relevance_token:
+  system: |
+    Is this document relevant to the question?
+    Respond with exactly YES or NO.
+  human: "Question: {question}\n\nDocument: {document}"
+
+support_token:
+  system: |
+    Is this answer fully supported by the provided context?
+    Respond with exactly: YES, PARTIALLY, or NO.
+  human: "Context: {context}\n\nAnswer: {answer}"
+
+useful_token:
+  system: |
+    Is this answer useful and responsive to the original question?
+    Respond with exactly YES or NO.
+  human: "Question: {question}\n\nAnswer: {answer}"

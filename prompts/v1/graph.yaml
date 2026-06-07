@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Graph RAG prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+entity_extract:
+  system: |
+    Extract all named entities from the question: companies, people, regulations,
+    products, locations, and concepts. Return a JSON array of strings, e.g.:
+    ["Apple Inc", "SEC", "iPhone 15"]
+  human: "{question}"
+
+graph_answer:
+  system: |
+    Answer using the provided text passages and knowledge graph context.
+    Cite sources in the format [Source: <filename>, Page: <page>] for text passages,
+    and [Graph: <entity>] for graph-derived facts.
+
+    Text context:
+    {text_context}
+
+    Knowledge graph context:
+    {graph_context}
+  human: "{question}"

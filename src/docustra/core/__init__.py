@@ -1,4 +1,5 @@
 from docustra.core.config import Settings, get_settings
+from docustra.core.prompts import get_prompt, get_prompt_version, invalidate_cache
 from docustra.core.exceptions import (
     DocustraError,
     EvaluationError,
@@ -22,4 +23,7 @@ __all__ = [
     "GraphError",
     "StorageError",
     "EvaluationError",
+    "get_prompt",
+    "get_prompt_version",
+    "invalidate_cache",
 ]

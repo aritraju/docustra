@@ -9,42 +9,14 @@ If the average score falls below a threshold, the system either:
 
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
 
 from docustra.core import get_logger, get_settings
+from docustra.core.prompts import get_prompt, get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.vector_store import VectorStore
 
 logger = get_logger(__name__)
-
-_RELEVANCE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Score the relevance of this document to the question.
-Return ONLY a number between 0.0 and 1.0. Nothing else.""",
-        ),
-        ("human", "Question: {question}\n\nDocument: {document}"),
-    ]
-)
-
-_REWRITE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "Rewrite the question to improve document retrieval. Be more specific and use different keywords.",
-        ),
-        ("human", "{question}"),
-    ]
-)
-
-_RAG_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", "Answer using only the provided context.\n\nContext:\n{context}"),
-        ("human", "{question}"),
-    ]
-)
 
 
 class CorrectiveRAG(BaseRAGStrategy):
@@ -91,19 +63,24 @@ class CorrectiveRAG(BaseRAGStrategy):
                 fallback_used = "web_search"
 
         context = "\n\n".join(d.page_content for d in docs)
-        chain = _RAG_PROMPT | self._llm
+        chain = get_prompt("shared", "citation_rag") | self._llm
         answer = chain.invoke({"context": context, "question": question}).content
 
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
             sources=self._format_sources(docs),
+            citations=self._extract_citations(docs),
             reasoning=f"Avg relevance score: {avg_score:.2f} (threshold: {self._threshold}). Fallback used: {fallback_used}.",
-            metadata={"avg_score": avg_score, "fallback": fallback_used},
+            metadata={
+                "avg_score": avg_score,
+                "fallback": fallback_used,
+                "prompt_version": get_prompt_version(),
+            },
         )
 
     def _rewrite_query(self, question: str) -> str:
-        chain = _REWRITE_PROMPT | self._llm
+        chain = get_prompt("corrective", "rewrite_query") | self._llm
         return chain.invoke({"question": question}).content.strip()
 
     def _score_docs(self, question: str, docs: list[Document]) -> float:
@@ -112,7 +89,7 @@ class CorrectiveRAG(BaseRAGStrategy):
         scores = []
         for doc in docs[:3]:
             try:
-                chain = _RELEVANCE_PROMPT | self._llm
+                chain = get_prompt("corrective", "relevance_score") | self._llm
                 raw = chain.invoke(
                     {"question": question, "document": doc.page_content[:500]}
                 ).content
@@ -120,6 +97,16 @@ class CorrectiveRAG(BaseRAGStrategy):
             except (ValueError, Exception):
                 scores.append(0.5)
         return sum(scores) / len(scores)
+
+    def _extract_citations(self, docs: list[Document]) -> list[dict]:
+        return [
+            {
+                "source": d.metadata.get("source", "unknown"),
+                "page": d.metadata.get("page"),
+                "passage_preview": d.page_content[:200],
+            }
+            for d in docs
+        ]
 
     def _web_search_fallback(self, question: str) -> list[Document]:
         results = self._web_search.invoke(question)

@@ -2,7 +2,13 @@
 
 ## System Overview
 
-Docustra is a unified document intelligence API where each query is handled by one of 8 RAG strategy implementations. A single `POST /query` endpoint accepts a `pattern` parameter that selects the strategy at runtime.
+Docustra is a unified document intelligence API where each query is handled by one of **9 RAG strategy implementations**. A single `POST /query` endpoint accepts a `pattern` parameter that selects the strategy at runtime.
+
+**Production enhancements added:**
+- **Hybrid RAG** — BM25 + dense vector retrieval fused with RRF, reranked by cross-encoder
+- **Citation enforcement** — all patterns must cite sources or explicitly decline
+- **Prompt versioning** — all LLM prompts stored in `prompts/v1/*.yaml`
+- **CI/CD evaluation gate** — 50-pair golden dataset + RAGAS thresholds block regressions
 
 ---
 
@@ -21,7 +27,7 @@ DocumentParser (PyMuPDF)
   │
   ▼
 DocumentChunker (RecursiveCharacterTextSplitter)
-  └── 512-token chunks, 64-token overlap
+  └── 650-token chunks, 100-token overlap  ← updated defaults (500-800 token sweet spot)
   │
   ├──▶ VectorStore.add_documents()  →  Qdrant collection
   │
@@ -254,6 +260,125 @@ Question
 
 ---
 
+### 9. Hybrid RAG ⭐ NEW
+
+**Problem solved:** Vector-only retrieval misses exact keyword matches; BM25-only misses semantic similarity. Neither enforces citation grounding.
+
+```
+Question
+  │
+  ├──────────────────────────────────────────────────────┐
+  │                                                      │
+  ▼                                                      ▼
+BM25 keyword search                        Dense vector search (Qdrant)
+(rank-bm25 library)                        (sentence-transformers embedding)
+  │                                                      │
+  │  [rank 1: Doc-A, rank 2: Doc-C, ...]   [rank 1: Doc-B, rank 2: Doc-A, ...]
+  │                                                      │
+  └─────────────────────┬────────────────────────────────┘
+                        │
+                        ▼
+          Reciprocal Rank Fusion (RRF)
+          score = Σ weight / (60 + rank)
+          BM25 weight=0.4, vector weight=0.6
+                        │
+                        ▼
+          Cross-Encoder Reranker
+          model: ms-marco-MiniLM-L-6-v2
+          reads (query, doc) jointly → precise score
+                        │
+                        ▼
+          Citation-Enforced LLM Answer
+          (from prompts/v1/shared.yaml → citation_rag)
+          Every claim must cite [Source: X, Page: Y]
+          or model declines to answer
+                        │
+                        ▼
+          RAGResponse
+          ├── answer (with inline citations)
+          ├── citations[] (structured list with reranker_score)
+          └── metadata.declined (true if model couldn't answer)
+```
+
+**Key design:** Two-stage retrieval (fast candidate generation → precise reranking) achieves cross-encoder accuracy at bi-encoder speed. Citation enforcement is prompt-level — no post-processing required.
+
+---
+
+## Production Features
+
+### Prompt Versioning
+
+All LLM prompts are stored in YAML files under `prompts/<version>/`, not hardcoded in Python.
+
+```
+prompts/
+└── v1/
+    ├── shared.yaml        ← citation_rag, rag_basic (used by all patterns)
+    ├── adaptive.yaml      ← router, direct_answer, decompose, synthesize
+    ├── agentic.yaml       ← agent system message
+    ├── branched.yaml      ← decompose, branch_answer, synthesize
+    ├── corrective.yaml    ← relevance_score, rewrite_query
+    ├── graph.yaml         ← entity_extract, graph_answer
+    ├── hybrid.yaml        ← metadata/documentation
+    ├── hyde.yaml          ← hypothetical_doc
+    └── self_rag.yaml      ← retrieve_token, relevance_token, support_token, useful_token
+```
+
+The loader (`src/docustra/core/prompts.py`) reads the active version from `Settings.prompt_version` and caches results. Switching versions requires only a `.env` change — no code redeploy.
+
+### Citation Enforcement
+
+All retrieval strategies now:
+1. Prepare context with `[Passage N | Source: X, Page: Y]` headers
+2. Use `prompts/v1/shared.yaml → citation_rag` which mandates inline citations
+3. Return a structured `citations[]` list alongside the answer text
+4. Log `metadata.declined = true` when context is insufficient
+
+The `RAGResponse` dataclass now includes:
+
+```python
+@dataclass
+class RAGResponse:
+    answer: str
+    pattern: RAGPattern
+    sources: list[dict]          # backward-compatible
+    citations: list[dict]        # NEW: [{source, page, passage_preview, reranker_score}]
+    reasoning: str
+    metadata: dict               # includes prompt_version, declined
+```
+
+### CI/CD Evaluation Gate
+
+```
+Pull request changes retrieval or prompts
+              │
+              ▼
+  .github/workflows/eval.yml triggers
+              │
+              ▼
+  Qdrant starts as Docker service
+              │
+              ▼
+  eval_ci.py runs 25 QA pairs from
+  data/eval/golden_dataset.json
+              │
+              ▼
+  RAGAS measures faithfulness,
+  answer_relevancy, context_precision
+              │
+         ┌────▼────┐
+         │ PASSES  │
+         │ ≥ 0.70  │
+         └────┬────┘
+          YES │  NO
+              │   │
+            ✓ │   │ ✗
+         Allow  Block
+         merge   PR
+```
+
+---
+
 ## Storage Layer
 
 ### Qdrant (Vector Store)
@@ -280,7 +405,16 @@ Settings are loaded from `.env` with type validation and defaults.
 Key tuning parameters:
 - `RETRIEVAL_TOP_K` — number of documents retrieved per search
 - `RETRIEVAL_SCORE_THRESHOLD` — CRAG confidence cutoff
-- `CHUNK_SIZE` / `CHUNK_OVERLAP` — chunking strategy
+- `CHUNK_SIZE` / `CHUNK_OVERLAP` — chunking strategy (defaults: 650 / 100)
+- `BM25_WEIGHT` — weight for BM25 in RRF fusion (default: 0.4)
+- `HYBRID_TOP_K` — candidates before reranking (default: 20)
+- `ENABLE_RERANKING` — toggle cross-encoder reranking (default: true)
+- `RERANKER_MODEL` — cross-encoder model (default: `cross-encoder/ms-marco-MiniLM-L-6-v2`)
+- `RERANKER_TOP_N` — final docs returned after reranking (default: 5)
+- `PROMPT_VERSION` — active prompt version folder (default: `v1`)
+- `EVAL_FAITHFULNESS_THRESHOLD` — CI gate threshold (default: 0.70)
+- `EVAL_ANSWER_RELEVANCY_THRESHOLD` — CI gate threshold (default: 0.70)
+- `EVAL_CONTEXT_PRECISION_THRESHOLD` — CI gate threshold (default: 0.60)
 - `LLM_PROVIDER` — switch between Gemini and Groq without code changes
 
 ---
@@ -298,9 +432,34 @@ Arize Phoenix provides local LLM tracing:
 
 RAGAS metrics are implemented in `src/docustra/evaluation/metrics.py`:
 
-| Metric | Measures |
-|---|---|
-| Faithfulness | Are claims in the answer supported by retrieved context? |
-| Answer Relevancy | Does the answer address the question asked? |
-| Context Precision | Are the retrieved chunks actually used in the answer? |
-| Context Recall | Does the retrieved context cover the ground truth answer? |
+| Metric | Measures | CI Threshold |
+|---|---|---|
+| Faithfulness | Are claims in the answer supported by retrieved context? | ≥ 0.70 |
+| Answer Relevancy | Does the answer address the question asked? | ≥ 0.70 |
+| Context Precision | Are the retrieved chunks actually used in the answer? | ≥ 0.60 |
+| Context Recall | Does the retrieved context cover the ground truth answer? | Reported only |
+
+### Golden Dataset
+
+`data/eval/golden_dataset.json` — 50 QA pairs:
+- **25 pairs** on Apple 10-K 2023 (financials, risk factors, products, legal)
+- **25 pairs** on vector database concepts (indexing, search algorithms, RAG)
+
+### Running evaluation
+
+```bash
+# Quick check (10 pairs)
+uv run python scripts/eval_ci.py --sample 10 --pattern hybrid
+
+# Full CI run (all 50 pairs)
+uv run python scripts/eval_ci.py
+
+# Compare patterns
+for pattern in hybrid corrective adaptive; do
+    uv run python scripts/eval_ci.py --pattern $pattern --sample 20 --output ${pattern}.json
+done
+```
+
+### CI/CD integration
+
+`.github/workflows/eval.yml` evaluates `hybrid`, `corrective`, and `adaptive` in parallel on every PR that touches retrieval, prompts, or evaluation files. Builds are blocked if any metric falls below threshold.

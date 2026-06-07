@@ -1,0 +1,160 @@
+name: RAG Evaluation Gate
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/docustra/retrieval/**"
+      - "src/docustra/ingestion/**"
+      - "prompts/**"
+      - "data/eval/**"
+      - "scripts/eval_ci.py"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/docustra/retrieval/**"
+      - "src/docustra/ingestion/**"
+      - "prompts/**"
+      - "data/eval/**"
+      - "scripts/eval_ci.py"
+  workflow_dispatch:
+    inputs:
+      sample_size:
+        description: "Number of QA pairs to evaluate (default: 25 for speed)"
+        required: false
+        default: "25"
+      pattern:
+        description: "RAG pattern to evaluate"
+        required: false
+        default: "hybrid"
+
+jobs:
+  rag-eval:
+    name: RAG Evaluation (${{ matrix.pattern }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pattern: [hybrid, corrective, adaptive]
+
+    services:
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -sf http://localhost:6333/healthz"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Install additional eval dependencies
+        run: uv pip install rank-bm25 sentence-transformers ragas
+
+      - name: Wait for Qdrant
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:6333/healthz && echo "Qdrant ready" && break
+            echo "Waiting for Qdrant... $i"
+            sleep 2
+          done
+
+      - name: Ingest evaluation documents
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER || 'groq' }}
+          QDRANT_URL: http://localhost:6333
+        run: |
+          uv run python scripts/ingest_sample_data.py || echo "Ingestion script not found, skipping"
+
+      - name: Run RAG evaluation
+        id: eval
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER || 'groq' }}
+          QDRANT_URL: http://localhost:6333
+          EVAL_FAITHFULNESS_THRESHOLD: "0.70"
+          EVAL_ANSWER_RELEVANCY_THRESHOLD: "0.70"
+          EVAL_CONTEXT_PRECISION_THRESHOLD: "0.60"
+        run: |
+          SAMPLE=${{ github.event.inputs.sample_size || '25' }}
+          PATTERN=${{ matrix.pattern }}
+          uv run python scripts/eval_ci.py \
+            --pattern $PATTERN \
+            --sample $SAMPLE \
+            --output eval_results_${PATTERN}.json
+        continue-on-error: false  # Fail the step if thresholds not met
+
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ matrix.pattern }}
+          path: eval_results_${{ matrix.pattern }}.json
+          retention-days: 30
+
+      - name: Post evaluation summary
+        if: always()
+        run: |
+          if [ -f "eval_results_${{ matrix.pattern }}.json" ]; then
+            echo "## RAG Evaluation: ${{ matrix.pattern }}" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat eval_results_${{ matrix.pattern }}.json | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          print(json.dumps({'scores': d['scores'], 'passed': d['passed']}, indent=2))
+          " >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  lint-prompts:
+    name: Validate prompt YAML files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install PyYAML
+        run: uv pip install pyyaml
+      - name: Validate all prompt YAML files
+        run: |
+          python3 - <<'EOF'
+          import yaml
+          import sys
+          from pathlib import Path
+          errors = []
+          for f in Path("prompts").rglob("*.yaml"):
+              try:
+                  with open(f) as fh:
+                      data = yaml.safe_load(fh)
+                  print(f"  ✓ {f}")
+              except yaml.YAMLError as e:
+                  errors.append(f"  ✗ {f}: {e}")
+          if errors:
+              print("\nYAML validation failures:")
+              for e in errors:
+                  print(e)
+              sys.exit(1)
+          print(f"\nAll {len(list(Path('prompts').rglob('*.yaml')))} prompt files valid.")
+          EOF

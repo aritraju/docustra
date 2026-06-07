@@ -1,0 +1,16 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Corrective RAG (CRAG) prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+relevance_score:
+  system: |
+    Score the relevance of this document to the question.
+    Return ONLY a number between 0.0 and 1.0. Nothing else.
+  human: "Question: {question}\n\nDocument: {document}"
+
+rewrite_query:
+  system: |
+    Rewrite the question to improve document retrieval.
+    Be more specific and use different keywords. Return only the rewritten question.
+  human: "{question}"

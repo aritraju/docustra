@@ -4,6 +4,7 @@ from docustra.retrieval.base import RAGPattern, RAGResponse
 from docustra.retrieval.branched import BranchedRAG
 from docustra.retrieval.corrective import CorrectiveRAG
 from docustra.retrieval.graph import GraphRAG
+from docustra.retrieval.hybrid import HybridRAG
 from docustra.retrieval.hyde import HyDERAG
 from docustra.retrieval.multimodal import MultimodalRAG
 from docustra.retrieval.self_rag import SelfRAG
@@ -14,6 +15,7 @@ STRATEGY_REGISTRY: dict[RAGPattern, type] = {
     RAGPattern.BRANCHED: BranchedRAG,
     RAGPattern.CORRECTIVE: CorrectiveRAG,
     RAGPattern.GRAPH: GraphRAG,
+    RAGPattern.HYBRID: HybridRAG,
     RAGPattern.HYDE: HyDERAG,
     RAGPattern.MULTIMODAL: MultimodalRAG,
     RAGPattern.SELF_RAG: SelfRAG,
@@ -37,6 +39,7 @@ __all__ = [
     "BranchedRAG",
     "CorrectiveRAG",
     "GraphRAG",
+    "HybridRAG",
     "HyDERAG",
     "MultimodalRAG",
     "SelfRAG",

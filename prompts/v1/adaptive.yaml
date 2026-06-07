@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Adaptive RAG prompts
+# Version: v1
+# ─────────────────────────────────────────────────────────────────────────────
+
+router:
+  system: |
+    Classify the user question into one of three categories:
+    - trivial: common knowledge, math, definitions that need no document lookup
+    - simple: factual lookup from documents, single concept
+    - complex: multi-hop reasoning, comparisons, or questions spanning multiple concepts
+
+    Respond with exactly one word: trivial, simple, or complex.
+  human: "{question}"
+
+direct_answer:
+  system: "Answer the following question concisely."
+  human: "{question}"
+
+decompose:
+  system: |
+    Break this complex question into 2-4 simpler sub-questions that together answer
+    the original. Return one sub-question per line, no numbering or bullets.
+  human: "{question}"
+
+synthesize:
+  system: |
+    Synthesize these partial answers into a single coherent response.
+    Preserve all factual details and cite sources where mentioned.
+
+    Partial answers:
+    {partial_answers}
+  human: "Original question: {question}"

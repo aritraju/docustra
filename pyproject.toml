@@ -52,6 +52,10 @@ dependencies = [
     "openinference-instrumentation-langchain>=0.1.0",
     # Evaluation
     "ragas>=0.2.0",
+    # Hybrid retrieval — BM25 keyword search
+    "rank-bm25>=0.2.2",
+    # Prompt versioning
+    "pyyaml>=6.0.2",
     # Utilities
     "httpx>=0.27.0",
     "tenacity>=8.5.0",
@@ -91,6 +95,7 @@ notebooks = [
 [project.scripts]
 docustra-api = "docustra.api.main:start"
 docustra-ui = "docustra.ui.app:main"
+docustra-eval = "scripts.eval_ci:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/docustra"]
@@ -118,3 +123,8 @@ addopts = "--cov=src/docustra --cov-report=term-missing --cov-report=html"
 [tool.coverage.run]
 source = ["src/docustra"]
 omit = ["*/tests/*", "*/ui/*"]
+
+[dependency-groups]
+dev = [
+    "grandalf>=0.8",
+]

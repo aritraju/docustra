@@ -3,51 +3,17 @@ Branched RAG
 ────────────
 Decomposes a complex query into parallel sub-questions, runs independent
 retrieval for each branch, then synthesizes all results into one answer.
-Parallel execution via asyncio for efficiency.
+
+Prompts loaded from prompts/<version>/branched.yaml and shared.yaml.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
-
 from docustra.core import get_logger
+from docustra.core.prompts import get_prompt, get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.vector_store import VectorStore
 
 logger = get_logger(__name__)
-
-_DECOMPOSE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Decompose the question into 2-4 independent sub-questions that together cover the full answer.
-Each sub-question should be answerable independently from the document corpus.
-Return ONLY a numbered list, one sub-question per line.""",
-        ),
-        ("human", "{question}"),
-    ]
-)
-
-_BRANCH_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", "Answer using only the provided context.\n\nContext:\n{context}"),
-        ("human", "{question}"),
-    ]
-)
-
-_SYNTHESIZE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You have answers to several sub-questions of a complex query.
-Synthesize them into a single coherent, comprehensive answer.
-Do not repeat information. Cite sources where relevant.""",
-        ),
-        (
-            "human",
-            "Original question: {original_question}\n\nSub-question answers:\n{sub_answers}",
-        ),
-    ]
-)
 
 
 class BranchedRAG(BaseRAGStrategy):
@@ -63,8 +29,6 @@ class BranchedRAG(BaseRAGStrategy):
         sub_questions = self._decompose(question)
         logger.info("Decomposed query", branches=len(sub_questions))
 
-        # Run branches sequentially to respect free-tier RPM limits
-        # (Switch to ThreadPoolExecutor for paid API keys with higher RPM)
         branch_results = []
         all_docs = []
         for sq in sub_questions:
@@ -75,35 +39,50 @@ class BranchedRAG(BaseRAGStrategy):
         sub_answers_text = "\n\n".join(
             f"Q: {r['sub_question']}\nA: {r['answer']}" for r in branch_results
         )
-        chain = _SYNTHESIZE_PROMPT | self._llm
-        final_answer = chain.invoke(
-            {"original_question": question, "sub_answers": sub_answers_text}
-        ).content
+        final_answer = (
+            (get_prompt("branched", "synthesize") | self._llm)
+            .invoke({"question": question, "answers": sub_answers_text})
+            .content
+        )
 
-        seen = set()
+        seen: set[str] = set()
         unique_docs = [
             d
             for d in all_docs
-            if not (d.page_content[:80] in seen or seen.add(d.page_content[:80]))
+            if not (d.page_content[:80] in seen or seen.add(d.page_content[:80]))  # type: ignore[func-returns-value]
         ]
 
         return RAGResponse(
             answer=final_answer,
             pattern=self.pattern,
             sources=self._format_sources(unique_docs),
-            reasoning=f"Decomposed into {len(sub_questions)} branches, retrieved in parallel, then synthesized.",
-            metadata={"sub_questions": sub_questions, "branch_answers": branch_results},
+            citations=[
+                {
+                    "source": d.metadata.get("source", "unknown"),
+                    "page": d.metadata.get("page"),
+                    "passage_preview": d.page_content[:200],
+                }
+                for d in unique_docs
+            ],
+            reasoning=f"Decomposed into {len(sub_questions)} branches, synthesized.",
+            metadata={
+                "sub_questions": sub_questions,
+                "branch_answers": branch_results,
+                "prompt_version": get_prompt_version(),
+            },
         )
 
     def _decompose(self, question: str) -> list[str]:
-        chain = _DECOMPOSE_PROMPT | self._llm
-        raw = chain.invoke({"question": question}).content.strip()
-        lines = [ln.split(". ", 1)[-1].strip() for ln in raw.splitlines() if ln.strip()]
+        raw = (get_prompt("branched", "decompose") | self._llm).invoke({"question": question}).content.strip()
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
         return [ln for ln in lines if len(ln) > 10][:4]
 
     def _answer_branch(self, sub_question: str) -> tuple[str, list]:
         docs = self._vector_store.similarity_search(sub_question, k=3)
         context = "\n\n".join(d.page_content for d in docs)
-        chain = _BRANCH_PROMPT | self._llm
-        answer = chain.invoke({"context": context, "question": sub_question}).content
+        answer = (
+            (get_prompt("branched", "branch_answer") | self._llm)
+            .invoke({"context": context, "question": sub_question})
+            .content
+        )
         return answer, docs

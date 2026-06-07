@@ -15,6 +15,7 @@ from langgraph.graph import END, StateGraph, add_messages
 from langgraph.prebuilt import ToolNode
 
 from docustra.core import get_logger, get_settings
+from docustra.core.prompts import get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.vector_store import VectorStore
@@ -78,10 +79,14 @@ class AgenticRAG(BaseRAGStrategy):
 
     def query(self, question: str, **kwargs) -> RAGResponse:
         logger.info("Agentic RAG query", question=question[:80])
+        # System instruction with citation enforcement
         system_msg = HumanMessage(
             content=(
-                "You are a document intelligence assistant. Use the available tools to search "
-                "documents and answer questions thoroughly. Always cite your sources.\n\n"
+                "You are a document intelligence agent. Use the vector_search tool to find "
+                "relevant documents, then answer with inline citations in the format "
+                "[Source: <filename>, Page: <page>]. "
+                "If the retrieved context does not support the answer, say so explicitly "
+                "rather than speculating.\n\n"
                 f"Question: {question}"
             )
         )
@@ -101,5 +106,9 @@ class AgenticRAG(BaseRAGStrategy):
             answer=final_answer or "No answer generated.",
             pattern=self.pattern,
             reasoning=f"Agent used {len(tool_calls_made)} tool calls: {tool_calls_made}",
-            metadata={"tool_calls": tool_calls_made, "total_messages": len(messages)},
+            metadata={
+                "tool_calls": tool_calls_made,
+                "total_messages": len(messages),
+                "prompt_version": get_prompt_version(),
+            },
         )

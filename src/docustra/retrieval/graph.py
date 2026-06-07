@@ -4,45 +4,18 @@ Graph RAG
 Queries the Neo4j knowledge graph to find entity relationships,
 then augments vector-retrieved context with graph-derived context.
 Excels at multi-hop questions: "How does regulation X affect vendor Y?"
+
+Prompts loaded from prompts/<version>/graph.yaml and shared.yaml.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
-
 from docustra.core import get_logger
+from docustra.core.prompts import get_prompt, get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.graph_store import GraphStore
 from docustra.storage.vector_store import VectorStore
 
 logger = get_logger(__name__)
-
-_ENTITY_EXTRACT_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Extract all named entities from the question: companies, people, regulations, products, locations.
-Return as a comma-separated list. Return ONLY the list.""",
-        ),
-        ("human", "{question}"),
-    ]
-)
-
-_RAG_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Answer the question using both the document context and the knowledge graph context.
-The knowledge graph context shows relationships between entities.
-
-Document Context:
-{doc_context}
-
-Knowledge Graph Context:
-{graph_context}""",
-        ),
-        ("human", "{question}"),
-    ]
-)
 
 
 class GraphRAG(BaseRAGStrategy):
@@ -59,7 +32,6 @@ class GraphRAG(BaseRAGStrategy):
         entities = self._extract_entities(question)
         logger.info("Extracted entities", entities=entities)
 
-        # Parallel: vector search + graph traversal
         docs = self._vector_store.similarity_search(question)
         graph_context = ""
         if entities:
@@ -68,25 +40,52 @@ class GraphRAG(BaseRAGStrategy):
         if not graph_context:
             logger.info("No graph context found, using vector only")
 
-        doc_context = "\n\n".join(d.page_content for d in docs)
-        chain = _RAG_PROMPT | self._llm
-        answer = chain.invoke(
-            {
-                "question": question,
-                "doc_context": doc_context,
-                "graph_context": graph_context or "No relationship data found in knowledge graph.",
-            }
-        ).content
+        text_context = "\n\n".join(d.page_content for d in docs)
+        answer = (
+            (get_prompt("graph", "graph_answer") | self._llm)
+            .invoke(
+                {
+                    "question": question,
+                    "text_context": text_context,
+                    "graph_context": graph_context or "No relationship data found in knowledge graph.",
+                }
+            )
+            .content
+        )
 
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
             sources=self._format_sources(docs),
+            citations=[
+                {
+                    "source": d.metadata.get("source", "unknown"),
+                    "page": d.metadata.get("page"),
+                    "passage_preview": d.page_content[:200],
+                }
+                for d in docs
+            ],
             reasoning=f"Entities extracted: {entities}. Graph context lines: {len(graph_context.splitlines())}.",
-            metadata={"entities": entities, "graph_context_found": bool(graph_context)},
+            metadata={
+                "entities": entities,
+                "graph_context_found": bool(graph_context),
+                "prompt_version": get_prompt_version(),
+            },
         )
 
     def _extract_entities(self, question: str) -> list[str]:
-        chain = _ENTITY_EXTRACT_PROMPT | self._llm
-        raw = chain.invoke({"question": question}).content.strip()
+        import json
+
+        raw = (
+            (get_prompt("graph", "entity_extract") | self._llm)
+            .invoke({"question": question})
+            .content.strip()
+        )
+        # Try JSON array first, fall back to comma-separated
+        try:
+            entities = json.loads(raw)
+            if isinstance(entities, list):
+                return [str(e).strip() for e in entities]
+        except (json.JSONDecodeError, ValueError):
+            pass
         return [e.strip() for e in raw.split(",") if e.strip()]

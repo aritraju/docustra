@@ -309,6 +309,14 @@ RAG_PATTERNS: dict[str, dict] = {
         "desc": "Neo4j knowledge graph traversal augments vector retrieval for entity-hop questions.",
         "doc": f"{_GH}/docs/patterns/05_graph_rag.md",
     },
+    "hybrid": {
+        "icon": "🔀⚡",
+        "label": "Hybrid",
+        "badge": "BM25 + Vector",
+        "bc": "bg",
+        "desc": "BM25 keyword + dense vector search fused via RRF, reranked by cross-encoder. Citation-enforced.",
+        "doc": f"{_GH}/docs/patterns/09_hybrid_rag.md",
+    },
     "hyde": {
         "icon": "💡",
         "label": "HyDE",
@@ -469,8 +477,9 @@ def main() -> None:
         '<div class="hero">'
         "<h1>📚 Docustra</h1>"
         "<p>Enterprise Document Intelligence &nbsp;·&nbsp; "
-        "8 RAG Patterns &nbsp;·&nbsp; 10 Chunking Strategies &nbsp;·&nbsp; "
-        "FastAPI · Qdrant · Neo4j · LangGraph</p>"
+        "9 RAG Patterns &nbsp;·&nbsp; 10 Chunking Strategies &nbsp;·&nbsp; "
+        "Hybrid BM25+Vector · Cross-Encoder Reranking · Citation Enforcement · "
+        "FastAPI · Qdrant · LangGraph</p>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -665,9 +674,9 @@ def main() -> None:
             st.session_state.sel_pat = "adaptive"
 
         pids = list(RAG_PATTERNS)
-        # 2 rows × 4 cols
-        for row_pids in [pids[:4], pids[4:]]:
-            cols = st.columns(4)
+        # 3 rows × 3 cols (9 patterns)
+        for row_pids in [pids[:3], pids[3:6], pids[6:]]:
+            cols = st.columns(3)
             for col, pid in zip(cols, row_pids, strict=False):
                 p = RAG_PATTERNS[pid]
                 is_sel = st.session_state.sel_pat == pid
@@ -758,20 +767,39 @@ def main() -> None:
             if r.status_code == 200:
                 d = r.json()
                 st.divider()
+
+                # ── Declined / cannot answer banner ──────────────────────────
+                answer_text = d["answer"]
+                is_declined = answer_text.startswith("I cannot answer")
+                if is_declined:
+                    st.warning(
+                        "⚠️ **Insufficient context** — the model declined to answer because "
+                        "the retrieved documents do not contain sufficient information. "
+                        "Try ingesting more relevant documents or rephrasing your question.",
+                        icon=None,
+                    )
+
                 st.markdown('<div class="ct">ANSWER</div>', unsafe_allow_html=True)
                 acol, scol = st.columns([4, 1])
                 with acol:
                     st.markdown(
-                        f'<div style="font-size:.95rem;line-height:1.7;color:var(--text)">{d["answer"]}</div>',
+                        f'<div style="font-size:.95rem;line-height:1.7;color:var(--text)">{answer_text}</div>',
                         unsafe_allow_html=True,
                     )
                 with scol:
                     st.metric("Latency", f"{elapsed}s")
                     st.metric("Sources", len(d.get("sources", [])))
+                    citations = d.get("citations", [])
+                    if citations:
+                        st.metric("Citations", len(citations))
 
                 st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
-                c1, c2, c3 = st.columns(3)
-                with c1, st.expander("🧠 Reasoning & Reflection"):
+
+                citations = d.get("citations", [])
+                num_expanders = 4 if citations else 3
+                cols_exp = st.columns(num_expanders)
+
+                with cols_exp[0], st.expander("🧠 Reasoning & Reflection"):
                     if d.get("reasoning"):
                         st.code(d["reasoning"], language=None)
                     else:
@@ -780,14 +808,31 @@ def main() -> None:
                             "No reasoning for this pattern.</span>",
                             unsafe_allow_html=True,
                         )
-                with c2, st.expander(f"📎 Sources ({len(d.get('sources', []))})"):
+
+                with cols_exp[1], st.expander(f"📎 Sources ({len(d.get('sources', []))})"):
                     for s in d.get("sources", []):
                         st.markdown(
                             f"**{s.get('source', '?').split('/')[-1]}** — Page {s.get('page', '?')}"
                         )
                         st.caption(s.get("content", "")[:200])
                         st.divider()
-                with c3, st.expander("🔧 Raw Metadata"):
+
+                if citations:
+                    with cols_exp[2], st.expander(f"🔖 Citations ({len(citations)})"):
+                        for i, c in enumerate(citations, start=1):
+                            src = c.get("source", "unknown").split("/")[-1]
+                            page = c.get("page")
+                            score = c.get("reranker_score")
+                            header = f"**[{i}] {src}**"
+                            if page:
+                                header += f" — Page {page}"
+                            if score is not None:
+                                header += f" *(relevance: {score:.3f})*"
+                            st.markdown(header)
+                            st.caption(c.get("passage_preview", "")[:200])
+                            st.divider()
+
+                with cols_exp[-1], st.expander("🔧 Raw Metadata"):
                     st.json(d.get("metadata", {}))
             else:
                 st.error(f"Query failed ({r.status_code})")

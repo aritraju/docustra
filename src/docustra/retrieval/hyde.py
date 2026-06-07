@@ -5,35 +5,17 @@ The LLM generates a hypothetical answer to the query first.
 That hypothetical answer (which stylistically resembles real documents)
 is embedded and used as the search vector instead of the raw query.
 This bridges the embedding space gap between short queries and long documents.
+
+Prompts loaded from prompts/<version>/hyde.yaml and shared.yaml.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
-
 from docustra.core import get_logger
+from docustra.core.prompts import get_prompt, get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.vector_store import VectorStore
 
 logger = get_logger(__name__)
-
-_HYPOTHETICAL_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Write a hypothetical document passage that would answer the following question.
-Write it as if it were an excerpt from a formal enterprise document or report.
-Be specific and factual in tone. Length: 2-3 sentences.""",
-        ),
-        ("human", "{question}"),
-    ]
-)
-
-_RAG_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", "Answer using only the provided context.\n\nContext:\n{context}"),
-        ("human", "{question}"),
-    ]
-)
 
 
 class HyDERAG(BaseRAGStrategy):
@@ -47,22 +29,39 @@ class HyDERAG(BaseRAGStrategy):
         logger.info("HyDE query", question=question[:80])
 
         # Step 1: Generate hypothetical document
-        chain = _HYPOTHETICAL_PROMPT | self._llm
-        hypothetical_doc = chain.invoke({"question": question}).content.strip()
+        hypothetical_doc = (
+            (get_prompt("hyde", "hypothetical_doc") | self._llm)
+            .invoke({"question": question})
+            .content.strip()
+        )
         logger.info("Generated hypothetical doc", preview=hypothetical_doc[:100])
 
         # Step 2: Use the hypothetical doc as the search query
         docs = self._vector_store.similarity_search(hypothetical_doc)
 
-        # Step 3: Answer with real retrieved docs
+        # Step 3: Answer with real retrieved docs (with citation enforcement)
         context = "\n\n".join(d.page_content for d in docs)
-        answer_chain = _RAG_PROMPT | self._llm
-        answer = answer_chain.invoke({"context": context, "question": question}).content
+        answer = (
+            (get_prompt("shared", "citation_rag") | self._llm)
+            .invoke({"context": context, "question": question})
+            .content
+        )
 
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
             sources=self._format_sources(docs),
+            citations=[
+                {
+                    "source": d.metadata.get("source", "unknown"),
+                    "page": d.metadata.get("page"),
+                    "passage_preview": d.page_content[:200],
+                }
+                for d in docs
+            ],
             reasoning=f"Hypothetical document used for retrieval: '{hypothetical_doc[:150]}...'",
-            metadata={"hypothetical_document": hypothetical_doc},
+            metadata={
+                "hypothetical_document": hypothetical_doc,
+                "prompt_version": get_prompt_version(),
+            },
         )

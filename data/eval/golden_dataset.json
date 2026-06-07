@@ -1,0 +1,364 @@
+{
+  "_meta": {
+    "version": "v1",
+    "description": "Golden evaluation dataset for Docustra RAG CI gating. 50 QA pairs across two document domains: Apple 10-K 2023 annual report and a vector databases technical guide. Faithfulness threshold: 0.70. Answer relevancy threshold: 0.70.",
+    "documents": [
+      "apple_10k_2023.pdf",
+      "vector-databses-guide.pdf"
+    ],
+    "created": "2026-06-06",
+    "total_pairs": 50
+  },
+  "pairs": [
+    {
+      "id": "apple_001",
+      "domain": "apple_10k",
+      "question": "What was Apple's total net sales for fiscal year 2023?",
+      "ground_truth": "Apple's total net sales for fiscal year 2023 were $383.3 billion, a decrease from $394.3 billion in fiscal year 2022.",
+      "tags": ["financials", "revenue"]
+    },
+    {
+      "id": "apple_002",
+      "domain": "apple_10k",
+      "question": "Which product category generated the most revenue for Apple in 2023?",
+      "ground_truth": "iPhone generated the most revenue for Apple in 2023, with net sales of approximately $200.6 billion, representing the largest segment of Apple's total revenue.",
+      "tags": ["financials", "products"]
+    },
+    {
+      "id": "apple_003",
+      "domain": "apple_10k",
+      "question": "What were Apple's reported risk factors related to competition in fiscal year 2023?",
+      "ground_truth": "Apple disclosed that it faces intense competition in all its markets, including from companies with greater resources, and that competitive pressures could harm revenues, margins, and market share. Competitors may offer products at lower prices or with different features.",
+      "tags": ["risk_factors", "competition"]
+    },
+    {
+      "id": "apple_004",
+      "domain": "apple_10k",
+      "question": "How much did Apple spend on research and development in fiscal 2023?",
+      "ground_truth": "Apple spent approximately $29.9 billion on research and development in fiscal year 2023, an increase from $26.3 billion in fiscal year 2022.",
+      "tags": ["financials", "R&D"]
+    },
+    {
+      "id": "apple_005",
+      "domain": "apple_10k",
+      "question": "What were Apple's Services segment net sales in fiscal 2023?",
+      "ground_truth": "Apple's Services segment reported net sales of approximately $85.2 billion in fiscal year 2023, representing strong growth compared to the prior year.",
+      "tags": ["financials", "services"]
+    },
+    {
+      "id": "apple_006",
+      "domain": "apple_10k",
+      "question": "What is Apple's primary business and where is it headquartered?",
+      "ground_truth": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories, and sells a variety of related services. Apple is headquartered in Cupertino, California.",
+      "tags": ["company_overview"]
+    },
+    {
+      "id": "apple_007",
+      "domain": "apple_10k",
+      "question": "What risks did Apple disclose related to supply chain concentration?",
+      "ground_truth": "Apple disclosed risks related to reliance on single-source suppliers for certain components, concentration of manufacturing in Asia (particularly China), and the risk that disruptions to manufacturing or logistics could adversely affect product availability and financial results.",
+      "tags": ["risk_factors", "supply_chain"]
+    },
+    {
+      "id": "apple_008",
+      "domain": "apple_10k",
+      "question": "What were Apple's Mac net sales in fiscal 2023 compared to fiscal 2022?",
+      "ground_truth": "Apple's Mac net sales declined in fiscal year 2023 compared to fiscal year 2022, reflecting softer demand in the personal computer market.",
+      "tags": ["financials", "products", "mac"]
+    },
+    {
+      "id": "apple_009",
+      "domain": "apple_10k",
+      "question": "How does Apple describe its approach to environmental sustainability in the 10-K?",
+      "ground_truth": "Apple describes commitments to carbon neutrality across its supply chain and products by 2030, use of recycled materials, renewable energy in its operations, and ongoing reduction of its overall environmental footprint.",
+      "tags": ["esg", "sustainability"]
+    },
+    {
+      "id": "apple_010",
+      "domain": "apple_10k",
+      "question": "What cybersecurity risks did Apple disclose?",
+      "ground_truth": "Apple disclosed risks including unauthorized access to customer data, disruption of its information technology systems, theft of intellectual property, and the potential for data breaches that could harm its reputation and result in legal liability or regulatory actions.",
+      "tags": ["risk_factors", "cybersecurity"]
+    },
+    {
+      "id": "apple_011",
+      "domain": "apple_10k",
+      "question": "What was Apple's total operating income for fiscal 2023?",
+      "ground_truth": "Apple's total operating income for fiscal year 2023 was approximately $114.3 billion.",
+      "tags": ["financials", "operating_income"]
+    },
+    {
+      "id": "apple_012",
+      "domain": "apple_10k",
+      "question": "What geographic region represented the largest share of Apple's net sales outside the Americas?",
+      "ground_truth": "Europe represented the largest share of Apple's international net sales outside the Americas, followed by Greater China, which also contributed significantly to total revenue.",
+      "tags": ["financials", "geographic_segments"]
+    },
+    {
+      "id": "apple_013",
+      "domain": "apple_10k",
+      "question": "What regulatory and legal proceedings did Apple disclose in fiscal 2023?",
+      "ground_truth": "Apple disclosed ongoing antitrust investigations and litigation in the EU and US, patent disputes, and regulatory scrutiny of its App Store policies and practices, including proceedings related to developer fees and market competition.",
+      "tags": ["legal", "regulatory"]
+    },
+    {
+      "id": "apple_014",
+      "domain": "apple_10k",
+      "question": "What were Apple's capital expenditures in fiscal 2023?",
+      "ground_truth": "Apple's capital expenditures in fiscal 2023 were approximately $10.7 billion, used primarily for data center infrastructure, retail stores, and corporate facilities.",
+      "tags": ["financials", "capex"]
+    },
+    {
+      "id": "apple_015",
+      "domain": "apple_10k",
+      "question": "How does Apple describe its intellectual property strategy?",
+      "ground_truth": "Apple protects its intellectual property through a combination of patents, trademarks, copyrights, trade secrets, and contractual agreements. The company views its intellectual property portfolio as critical to maintaining competitive advantages.",
+      "tags": ["intellectual_property", "strategy"]
+    },
+    {
+      "id": "apple_016",
+      "domain": "apple_10k",
+      "question": "What was Apple's Wearables, Home and Accessories net sales in fiscal 2023?",
+      "ground_truth": "Apple's Wearables, Home and Accessories segment reported net sales of approximately $39.8 billion in fiscal year 2023.",
+      "tags": ["financials", "wearables"]
+    },
+    {
+      "id": "apple_017",
+      "domain": "apple_10k",
+      "question": "What macroeconomic risks did Apple highlight in its 2023 10-K filing?",
+      "ground_truth": "Apple highlighted risks including inflation, foreign currency fluctuations, rising interest rates, global economic uncertainty, and potential recession that could reduce consumer and enterprise spending on its products and services.",
+      "tags": ["risk_factors", "macroeconomic"]
+    },
+    {
+      "id": "apple_018",
+      "domain": "apple_10k",
+      "question": "What is Apple's fiscal year end date?",
+      "ground_truth": "Apple's fiscal year ends on the last Saturday of September each year. Fiscal year 2023 ended on September 30, 2023.",
+      "tags": ["company_overview", "fiscal_year"]
+    },
+    {
+      "id": "apple_019",
+      "domain": "apple_10k",
+      "question": "How does Apple distribute its products?",
+      "ground_truth": "Apple distributes its products through its retail stores, online store, direct sales force, third-party cellular carriers, wholesalers, retailers, and resellers.",
+      "tags": ["distribution", "sales_channels"]
+    },
+    {
+      "id": "apple_020",
+      "domain": "apple_10k",
+      "question": "What risks related to AI and machine learning did Apple disclose?",
+      "ground_truth": "Apple disclosed risks that AI and machine learning features may not perform as expected, could create reputational harm, introduce new privacy or security vulnerabilities, and face evolving regulatory requirements around AI usage.",
+      "tags": ["risk_factors", "ai", "technology"]
+    },
+    {
+      "id": "apple_021",
+      "domain": "apple_10k",
+      "question": "What were total Apple iPad net sales in fiscal 2023?",
+      "ground_truth": "Apple's iPad net sales were approximately $28.3 billion in fiscal year 2023, reflecting some softness in the tablet market.",
+      "tags": ["financials", "ipad"]
+    },
+    {
+      "id": "apple_022",
+      "domain": "apple_10k",
+      "question": "What privacy-related regulatory risks did Apple disclose?",
+      "ground_truth": "Apple disclosed risks from evolving privacy laws and regulations globally, including GDPR in Europe and various US state privacy laws, which could require changes to data collection practices and increase compliance costs.",
+      "tags": ["risk_factors", "privacy", "regulatory"]
+    },
+    {
+      "id": "apple_023",
+      "domain": "apple_10k",
+      "question": "What is Apple's net income for fiscal year 2023?",
+      "ground_truth": "Apple's net income for fiscal year 2023 was approximately $97.0 billion.",
+      "tags": ["financials", "net_income"]
+    },
+    {
+      "id": "apple_024",
+      "domain": "apple_10k",
+      "question": "How does Apple describe the competitive landscape for its App Store?",
+      "ground_truth": "Apple acknowledges that the App Store faces competition from alternative app distribution channels and regulatory pressure requiring changes to its policies. It describes maintaining a secure and trusted platform as a key value proposition.",
+      "tags": ["competition", "app_store"]
+    },
+    {
+      "id": "apple_025",
+      "domain": "apple_10k",
+      "question": "What stock repurchase activity did Apple disclose in fiscal 2023?",
+      "ground_truth": "Apple repurchased a significant amount of its common stock during fiscal 2023 under its share repurchase program, returning capital to shareholders, and paid quarterly cash dividends.",
+      "tags": ["financials", "buybacks", "capital_return"]
+    },
+    {
+      "id": "vdb_001",
+      "domain": "vector_databases",
+      "question": "What is a vector database and how does it differ from a traditional relational database?",
+      "ground_truth": "A vector database is a type of database designed to store, index, and query high-dimensional vector embeddings. Unlike traditional relational databases that organize data in rows and columns and use exact-match queries, vector databases use approximate nearest neighbor (ANN) algorithms to find similar vectors based on distance metrics such as cosine similarity or Euclidean distance.",
+      "tags": ["concepts", "fundamentals"]
+    },
+    {
+      "id": "vdb_002",
+      "domain": "vector_databases",
+      "question": "What is cosine similarity and when is it used in vector search?",
+      "ground_truth": "Cosine similarity measures the cosine of the angle between two vectors, producing a value between -1 and 1. A value of 1 means the vectors point in the same direction (highly similar), while 0 means they are orthogonal (unrelated). It is widely used in vector databases for semantic similarity search because it measures orientation rather than magnitude.",
+      "tags": ["similarity_metrics", "search"]
+    },
+    {
+      "id": "vdb_003",
+      "domain": "vector_databases",
+      "question": "What is HNSW and why is it commonly used in vector databases?",
+      "ground_truth": "HNSW (Hierarchical Navigable Small World) is a graph-based approximate nearest neighbor algorithm. It builds a multi-layer graph where higher layers provide fast long-range navigation and lower layers provide fine-grained local search. HNSW is widely used because it offers excellent speed-recall tradeoffs and scales well to large datasets.",
+      "tags": ["indexing", "algorithms", "HNSW"]
+    },
+    {
+      "id": "vdb_004",
+      "domain": "vector_databases",
+      "question": "What is the difference between exact nearest neighbor search and approximate nearest neighbor search?",
+      "ground_truth": "Exact nearest neighbor search finds the true closest vectors but requires scanning all vectors, making it O(n) and impractical for large datasets. Approximate nearest neighbor (ANN) search trades a small amount of accuracy for dramatically faster retrieval by using indexing structures like HNSW or IVF to limit the search space.",
+      "tags": ["search", "algorithms", "ANN"]
+    },
+    {
+      "id": "vdb_005",
+      "domain": "vector_databases",
+      "question": "What are the main types of vector indices used in vector databases?",
+      "ground_truth": "Common vector index types include: HNSW (graph-based, high recall), IVF (Inverted File Index, cluster-based), IVF-PQ (with product quantization for compression), FLAT (brute-force exact search), and ScaNN. Each offers different tradeoffs between speed, memory, and recall accuracy.",
+      "tags": ["indexing", "algorithms"]
+    },
+    {
+      "id": "vdb_006",
+      "domain": "vector_databases",
+      "question": "How does product quantization (PQ) help with vector storage?",
+      "ground_truth": "Product quantization compresses high-dimensional vectors by splitting them into sub-vectors and quantizing each sub-vector to a codebook entry. This dramatically reduces memory usage at the cost of some accuracy, enabling billion-scale vector indices to fit in memory.",
+      "tags": ["compression", "quantization", "storage"]
+    },
+    {
+      "id": "vdb_007",
+      "domain": "vector_databases",
+      "question": "What is metadata filtering in vector search?",
+      "ground_truth": "Metadata filtering allows vector search to be combined with traditional attribute-based filtering. For example, you can find semantically similar documents that also match conditions like 'author = X' or 'date > 2023'. This is important for RAG systems where documents come from specific sources.",
+      "tags": ["filtering", "hybrid_search"]
+    },
+    {
+      "id": "vdb_008",
+      "domain": "vector_databases",
+      "question": "What is the role of embedding models in vector databases?",
+      "ground_truth": "Embedding models convert raw data (text, images, audio) into dense vector representations that capture semantic meaning. The quality of embeddings directly determines the relevance of retrieved results. Common embedding models include sentence-transformers, OpenAI Ada, and Cohere Embed.",
+      "tags": ["embeddings", "models"]
+    },
+    {
+      "id": "vdb_009",
+      "domain": "vector_databases",
+      "question": "What is Qdrant and what are its key features?",
+      "ground_truth": "Qdrant is an open-source vector database built in Rust. Key features include HNSW indexing, payload-based filtering, sparse vector support, on-disk storage, distributed deployment, and a REST/gRPC API. It is designed for high-performance similarity search.",
+      "tags": ["qdrant", "tools"]
+    },
+    {
+      "id": "vdb_010",
+      "domain": "vector_databases",
+      "question": "What is hybrid search in the context of vector databases?",
+      "ground_truth": "Hybrid search combines dense vector search (semantic similarity) with sparse keyword search (BM25 or TF-IDF). Results from both methods are merged using algorithms like Reciprocal Rank Fusion (RRF), providing better retrieval than either method alone — especially for queries with specific terms.",
+      "tags": ["hybrid_search", "BM25"]
+    },
+    {
+      "id": "vdb_011",
+      "domain": "vector_databases",
+      "question": "What is the recall metric in vector search evaluation?",
+      "ground_truth": "Recall in vector search measures the fraction of true nearest neighbors that are included in the approximate search results. A recall of 0.95 at k=10 means 95% of the 10 true nearest neighbors were found by the ANN search.",
+      "tags": ["evaluation", "metrics"]
+    },
+    {
+      "id": "vdb_012",
+      "domain": "vector_databases",
+      "question": "How does the IVF (Inverted File Index) algorithm work?",
+      "ground_truth": "IVF partitions the vector space into clusters (Voronoi cells) using k-means clustering. At index time, each vector is assigned to its nearest cluster centroid. At query time, the query vector is compared to cluster centroids, and only the closest N clusters are searched, reducing computation significantly.",
+      "tags": ["indexing", "IVF", "algorithms"]
+    },
+    {
+      "id": "vdb_013",
+      "domain": "vector_databases",
+      "question": "What is semantic search and how does it differ from keyword search?",
+      "ground_truth": "Semantic search finds documents based on meaning and intent rather than exact keyword matches. It uses vector embeddings to represent meaning, so 'car' and 'automobile' would be semantically similar. Keyword search only matches exact terms or their variants.",
+      "tags": ["semantic_search", "fundamentals"]
+    },
+    {
+      "id": "vdb_014",
+      "domain": "vector_databases",
+      "question": "What are the trade-offs between in-memory and on-disk vector indices?",
+      "ground_truth": "In-memory indices offer the lowest latency but are limited by available RAM. On-disk indices (like DiskANN) can store billions of vectors cheaply but have higher latency due to I/O. Hybrid approaches keep quantized vectors in memory for fast candidate retrieval and load full vectors from disk only for final scoring.",
+      "tags": ["storage", "performance"]
+    },
+    {
+      "id": "vdb_015",
+      "domain": "vector_databases",
+      "question": "What is Reciprocal Rank Fusion (RRF) and how does it work?",
+      "ground_truth": "Reciprocal Rank Fusion is a rank merging algorithm that combines multiple ranked lists. For each document, its RRF score is the sum of 1/(k + rank) across all lists, where k is a constant (typically 60) that reduces sensitivity to top-rank differences. Higher RRF scores indicate better combined relevance.",
+      "tags": ["fusion", "hybrid_search", "RRF"]
+    },
+    {
+      "id": "vdb_016",
+      "domain": "vector_databases",
+      "question": "What is a collection in Qdrant?",
+      "ground_truth": "A collection in Qdrant is the primary unit of organization, analogous to a table in relational databases. It holds points (vectors + payloads) and is configured with a specific vector size and distance metric. Multiple collections can exist in one Qdrant instance.",
+      "tags": ["qdrant", "concepts"]
+    },
+    {
+      "id": "vdb_017",
+      "domain": "vector_databases",
+      "question": "How does vector dimensionality affect search performance and accuracy?",
+      "ground_truth": "Higher-dimensional vectors can capture more nuanced semantic information but require more storage and computation. The curse of dimensionality also makes ANN algorithms less effective at very high dimensions. Most practical embedding models use 384 to 1536 dimensions.",
+      "tags": ["performance", "dimensionality"]
+    },
+    {
+      "id": "vdb_018",
+      "domain": "vector_databases",
+      "question": "What is a payload in Qdrant and how is it used?",
+      "ground_truth": "A payload in Qdrant is a JSON object attached to each vector point, containing metadata like document source, page number, author, or creation date. Payloads can be used for filtered search, combining vector similarity with structured conditions.",
+      "tags": ["qdrant", "metadata", "payload"]
+    },
+    {
+      "id": "vdb_019",
+      "domain": "vector_databases",
+      "question": "What is sparse vector representation and how does it differ from dense vectors?",
+      "ground_truth": "Sparse vectors have mostly zero values with a few non-zero entries, like TF-IDF or BM25 term weights. Dense vectors have values in most dimensions, capturing semantic meaning via neural networks. Sparse vectors excel at exact term matching; dense vectors at semantic similarity.",
+      "tags": ["sparse_vectors", "dense_vectors", "comparison"]
+    },
+    {
+      "id": "vdb_020",
+      "domain": "vector_databases",
+      "question": "What is the purpose of re-ranking in RAG pipelines?",
+      "ground_truth": "Re-ranking applies a more accurate but slower model (typically a cross-encoder) to the candidates retrieved by a fast first-stage retriever (bi-encoder or BM25). Cross-encoders jointly process the (query, document) pair and produce a precise relevance score, improving final answer quality at the cost of additional inference time.",
+      "tags": ["reranking", "cross_encoder", "RAG"]
+    },
+    {
+      "id": "vdb_021",
+      "domain": "vector_databases",
+      "question": "What are bi-encoders and cross-encoders and how do they compare?",
+      "ground_truth": "Bi-encoders encode the query and document independently into vectors and compute similarity via dot product or cosine similarity — fast but less accurate. Cross-encoders take the (query, document) pair together and produce a single relevance score — slower but significantly more accurate, typically used for re-ranking.",
+      "tags": ["bi_encoder", "cross_encoder", "models"]
+    },
+    {
+      "id": "vdb_022",
+      "domain": "vector_databases",
+      "question": "What is maximum marginal relevance (MMR) in document retrieval?",
+      "ground_truth": "Maximum Marginal Relevance (MMR) is a retrieval technique that balances relevance and diversity. It iteratively selects documents that are highly relevant to the query but not too similar to already-selected documents, reducing redundancy in the retrieved context.",
+      "tags": ["retrieval", "diversity", "MMR"]
+    },
+    {
+      "id": "vdb_023",
+      "domain": "vector_databases",
+      "question": "What is chunking and why does chunk size matter in RAG systems?",
+      "ground_truth": "Chunking splits documents into smaller pieces before embedding and indexing. Chunk size matters because too-small chunks lose context and too-large chunks dilute relevance. Typical best practice is 500-800 tokens with 100-token overlap to preserve context across boundaries.",
+      "tags": ["chunking", "RAG", "ingestion"]
+    },
+    {
+      "id": "vdb_024",
+      "domain": "vector_databases",
+      "question": "What distance metrics are commonly supported by vector databases?",
+      "ground_truth": "Common distance metrics in vector databases include cosine similarity (for normalized vectors, measures angle), dot product (fast, scale-dependent), Euclidean distance (L2 norm, sensitive to magnitude), and Manhattan distance (L1 norm). Cosine similarity is most common for NLP embeddings.",
+      "tags": ["distance_metrics", "similarity"]
+    },
+    {
+      "id": "vdb_025",
+      "domain": "vector_databases",
+      "question": "What is the difference between online and offline vector index updates?",
+      "ground_truth": "Online updates allow adding new vectors to an existing index incrementally without full rebuild. Offline updates require rebuilding the entire index, which is slower but may produce better index quality. Most production vector databases like Qdrant support online upserts with periodic background optimization.",
+      "tags": ["indexing", "operations", "performance"]
+    }
+  ]
+}

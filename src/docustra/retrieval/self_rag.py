@@ -8,6 +8,7 @@ The LLM generates reflection tokens at each step to self-critique:
   [Useful]    — is the final response useful?
 
 This makes the reasoning process transparent and auditable.
+Prompts loaded from prompts/<version>/self_rag.yaml and shared.yaml.
 """
 
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from dataclasses import dataclass
 from langchain_core.prompts import ChatPromptTemplate
 
 from docustra.core import get_logger
+from docustra.core.prompts import get_prompt, get_prompt_version
 from docustra.ingestion.embedder import get_embeddings
 from docustra.retrieval.base import BaseRAGStrategy, RAGPattern, RAGResponse
 from docustra.storage.vector_store import VectorStore
@@ -28,56 +30,6 @@ class ReflectionTokens:
     relevant: bool = True
     supported: bool = True
     useful: bool = True
-
-
-_RETRIEVE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "Does answering this question require retrieving external documents? "
-            "Answer YES or NO only.",
-        ),
-        ("human", "{question}"),
-    ]
-)
-
-_RELEVANCE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "Is this document relevant to answering the question? Answer YES or NO only.",
-        ),
-        ("human", "Question: {question}\n\nDocument: {document}"),
-    ]
-)
-
-_GENERATE_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", "Answer the question using the provided context.\n\nContext:\n{context}"),
-        ("human", "{question}"),
-    ]
-)
-
-_SUPPORTED_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "Is the answer fully supported by the provided context? "
-            "Answer YES, PARTIALLY, or NO only.",
-        ),
-        ("human", "Context: {context}\n\nAnswer: {answer}"),
-    ]
-)
-
-_USEFUL_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "Is this a useful and complete answer to the question? Answer YES or NO only.",
-        ),
-        ("human", "Question: {question}\n\nAnswer: {answer}"),
-    ]
-)
 
 
 class SelfRAG(BaseRAGStrategy):
@@ -94,7 +46,10 @@ class SelfRAG(BaseRAGStrategy):
 
         # [Retrieve] token
         retrieve_raw = (
-            (_RETRIEVE_PROMPT | self._llm).invoke({"question": question}).content.strip().upper()
+            (get_prompt("self_rag", "retrieve_token") | self._llm)
+            .invoke({"question": question})
+            .content.strip()
+            .upper()
         )
         tokens.retrieve = "YES" in retrieve_raw
         reasoning_log.append(f"[Retrieve]: {retrieve_raw}")
@@ -114,7 +69,7 @@ class SelfRAG(BaseRAGStrategy):
                 answer=direct,
                 pattern=self.pattern,
                 reasoning="\n".join(reasoning_log) + "\n[Retrieve]: NO — answered directly.",
-                metadata={"tokens": vars(tokens)},
+                metadata={"tokens": vars(tokens), "prompt_version": get_prompt_version()},
             )
 
         # Retrieve docs and filter by [Relevant] token
@@ -122,7 +77,7 @@ class SelfRAG(BaseRAGStrategy):
         relevant_docs = []
         for doc in docs:
             relevance = (
-                (_RELEVANCE_PROMPT | self._llm)
+                (get_prompt("self_rag", "relevance_token") | self._llm)
                 .invoke({"question": question, "document": doc.page_content[:500]})
                 .content.strip()
                 .upper()
@@ -137,15 +92,16 @@ class SelfRAG(BaseRAGStrategy):
             tokens.relevant = False
 
         context = "\n\n".join(d.page_content for d in relevant_docs)
+        # Use citation_rag for grounded answer generation
         answer = (
-            (_GENERATE_PROMPT | self._llm)
+            (get_prompt("shared", "citation_rag") | self._llm)
             .invoke({"context": context, "question": question})
             .content
         )
 
         # [Supported] token
         supported_raw = (
-            (_SUPPORTED_PROMPT | self._llm)
+            (get_prompt("self_rag", "support_token") | self._llm)
             .invoke({"context": context[:1000], "answer": answer[:500]})
             .content.strip()
             .upper()
@@ -155,7 +111,7 @@ class SelfRAG(BaseRAGStrategy):
 
         # [Useful] token
         useful_raw = (
-            (_USEFUL_PROMPT | self._llm)
+            (get_prompt("self_rag", "useful_token") | self._llm)
             .invoke({"question": question, "answer": answer})
             .content.strip()
             .upper()
@@ -167,6 +123,18 @@ class SelfRAG(BaseRAGStrategy):
             answer=answer,
             pattern=self.pattern,
             sources=self._format_sources(relevant_docs),
+            citations=[
+                {
+                    "source": d.metadata.get("source", "unknown"),
+                    "page": d.metadata.get("page"),
+                    "passage_preview": d.page_content[:200],
+                }
+                for d in relevant_docs
+            ],
             reasoning="\n".join(reasoning_log),
-            metadata={"tokens": vars(tokens), "relevant_docs_count": len(relevant_docs)},
+            metadata={
+                "tokens": vars(tokens),
+                "relevant_docs_count": len(relevant_docs),
+                "prompt_version": get_prompt_version(),
+            },
         )

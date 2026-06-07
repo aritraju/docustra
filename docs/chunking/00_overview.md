@@ -81,18 +81,49 @@ What type of document are you ingesting?
 All non-LLM strategies respect the `CHUNK_SIZE` and `CHUNK_OVERLAP` settings in `.env`:
 
 ```env
-CHUNK_SIZE=512     # characters (or tokens for Token strategy)
-CHUNK_OVERLAP=64   # overlap between consecutive chunks
+CHUNK_SIZE=650     # characters (updated default — midpoint of 500-800 token sweet spot)
+CHUNK_OVERLAP=100  # overlap between consecutive chunks (updated — preserves cross-boundary context)
 ```
 
-**Tuning guidance:**
+### Why 650 / 100?
 
-| Document type | Recommended CHUNK_SIZE |
-|---|---|
-| Dense technical (e.g. research papers) | 1024 |
-| General enterprise docs | 512 (default) |
-| FAQ / short-answer docs | 256 |
-| Legal / regulatory (long clauses) | 1024–2048 |
+The **500–800 token range** is the empirical sweet spot for RAG chunk sizes — established through benchmarks on passage retrieval tasks:
+
+- **Too small (< 300 tokens):** chunks lose context, the LLM gets fragments instead of coherent passages
+- **Too large (> 1000 tokens):** chunks are too general, retrieval precision drops, and the LLM has to filter noise
+- **650 tokens:** midpoint of the sweet spot — balances context richness with retrieval precision
+
+The **100-token overlap** (up from 64) ensures that sentences spanning chunk boundaries are captured in at least one chunk, which is critical for questions that reference specific numbers or facts at paragraph edges.
+
+### How chunk size interacts with retrieval
+
+```
+Small chunks (256 tokens):
+  Retrieved 5 chunks → 5 × 256 = 1,280 tokens of context
+  ✓ Very precise — each chunk is tightly focused
+  ✗ May miss multi-sentence reasoning
+  
+Default chunks (650 tokens):
+  Retrieved 5 chunks → 5 × 650 = 3,250 tokens of context
+  ✓ Each chunk tells a coherent story
+  ✓ Enough context for multi-sentence answers
+  ✓ Balanced with typical LLM context windows
+  
+Large chunks (1024 tokens):
+  Retrieved 5 chunks → 5 × 1,024 = 5,120 tokens of context
+  ✓ Maximum context per chunk
+  ✗ May dilute relevance score in hybrid/reranking
+```
+
+### Tuning guidance
+
+| Document type | Recommended `CHUNK_SIZE` | Recommended `CHUNK_OVERLAP` |
+|---|---|---|
+| Dense technical (research papers) | 800–1024 | 100–150 |
+| General enterprise docs | 650 (default) | 100 (default) |
+| Legal / regulatory (long clauses) | 800–1200 | 150–200 |
+| FAQ / Q&A format | 300–400 | 50–75 |
+| Short news articles / briefs | 400–500 | 75–100 |
 
 ---
 
