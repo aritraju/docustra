@@ -104,8 +104,20 @@ jobs:
         run: |
           uv run python scripts/ingest_sample_data.py || echo "Ingestion script not found, skipping"
 
+      - name: Check API credentials
+        run: |
+          if [ -z "${{ secrets.GOOGLE_API_KEY }}" ] && [ -z "${{ secrets.GROQ_API_KEY }}" ]; then
+            echo "⚠️  No LLM API keys found in GitHub Secrets."
+            echo "    Add GOOGLE_API_KEY or GROQ_API_KEY in:"
+            echo "    Settings → Secrets and variables → Actions → New repository secret"
+            echo "SKIP_EVAL=true" >> $GITHUB_ENV
+          else
+            echo "SKIP_EVAL=false" >> $GITHUB_ENV
+          fi
+
       - name: Run RAG evaluation
         id: eval
+        if: env.SKIP_EVAL == 'false'
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -121,7 +133,12 @@ jobs:
             --pattern $PATTERN \
             --sample $SAMPLE \
             --output eval_results_${PATTERN}.json
-        continue-on-error: false  # Fail the step if thresholds not met
+
+      - name: Skip notice
+        if: env.SKIP_EVAL == 'true'
+        run: |
+          echo "## ⚠️ RAG Evaluation Skipped — No API keys" >> $GITHUB_STEP_SUMMARY
+          echo "Add GOOGLE_API_KEY or GROQ_API_KEY to repo secrets to enable evaluation." >> $GITHUB_STEP_SUMMARY
 
       - name: Upload evaluation results
         uses: actions/upload-artifact@v4
@@ -150,12 +167,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      - name: Set up Python
-        run: uv python install 3.11
       - name: Install PyYAML
-        run: uv pip install pyyaml --system
+        run: pip install pyyaml --quiet
       - name: Validate all prompt YAML files
         run: |
           python3 - <<'EOF'
