@@ -173,7 +173,7 @@ class HybridRAG(BaseRAGStrategy):
         context = self._build_context_with_metadata(final_docs)
         prompt = get_prompt("shared", "citation_rag")
         chain = prompt | self._llm
-        answer = chain.invoke({"context": context, "question": question}).content.strip()
+        answer = chain.invoke({"context": context, "question": question}).content.strip()  # type: ignore[union-attr]
 
         # Detect decline — don't attach sources if model couldn't answer
         declined = answer.startswith("I cannot answer")

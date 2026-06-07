@@ -45,7 +45,7 @@ class AdaptiveRAG(BaseRAGStrategy):
 
     def _classify(self, question: str) -> QueryComplexity:
         chain = get_prompt("adaptive", "router") | self._llm
-        result = chain.invoke({"question": question}).content.strip().lower()
+        result = chain.invoke({"question": question}).content.strip()  # type: ignore[union-attr].lower()
         try:
             return QueryComplexity(result)
         except ValueError:
@@ -53,7 +53,7 @@ class AdaptiveRAG(BaseRAGStrategy):
 
     def _answer_directly(self, question: str) -> RAGResponse:
         chain = get_prompt("adaptive", "direct_answer") | self._llm
-        answer = chain.invoke({"question": question}).content
+        answer = chain.invoke({"question": question}).content  # type: ignore[union-attr]
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
@@ -65,7 +65,7 @@ class AdaptiveRAG(BaseRAGStrategy):
         docs = self._vector_store.similarity_search(question)
         context = "\n\n".join(d.page_content for d in docs)
         chain = get_prompt("shared", "citation_rag") | self._llm
-        answer = chain.invoke({"context": context, "question": question}).content
+        answer = chain.invoke({"context": context, "question": question}).content  # type: ignore[union-attr]
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
@@ -76,7 +76,9 @@ class AdaptiveRAG(BaseRAGStrategy):
         )
 
     def _decompose(self, question: str) -> list[str]:
-        raw = (get_prompt("adaptive", "decompose") | self._llm).invoke({"question": question}).content
+        raw = (
+            (get_prompt("adaptive", "decompose") | self._llm).invoke({"question": question}).content  # type: ignore[union-attr]
+        )
         return [line.strip() for line in raw.strip().splitlines() if line.strip()][:4]
 
     def _complex_retrieval(self, question: str) -> RAGResponse:
@@ -96,8 +98,7 @@ class AdaptiveRAG(BaseRAGStrategy):
 
         context = "\n\n".join(d.page_content for d in unique_docs)
         chain = get_prompt("shared", "citation_rag") | self._llm
-        answer = chain.invoke({"context": context, "question": question}).content
-
+        answer = chain.invoke({"context": context, "question": question}).content  # type: ignore[union-attr]
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,

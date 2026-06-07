@@ -8,6 +8,36 @@ from docustra.core import get_settings
 router = APIRouter(prefix="/health", tags=["health"])
 
 
+@router.get("/config")
+async def get_config() -> dict:
+    """Expose non-sensitive config values so the UI can use correct URLs/names."""
+    settings = get_settings()
+    return {
+        "qdrant_url": settings.qdrant_url,
+        "qdrant_collection": settings.qdrant_collection,
+    }
+
+
+@router.get("/qdrant-stats")
+async def qdrant_stats() -> dict:
+    """Return Qdrant collection stats using the server-side configured URL and collection."""
+    settings = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            r = await client.get(f"{settings.qdrant_url}/collections/{settings.qdrant_collection}")
+        if r.status_code == 200:
+            info = r.json().get("result", {})
+            return {
+                "vectors": info.get("points_count", 0),
+                "status": info.get("status", "—"),
+                "optimizer": info.get("optimizer_status", {}).get("status", "—"),
+            }
+        # Collection doesn't exist yet (no documents ingested)
+        return {"vectors": 0, "status": "empty", "optimizer": "—"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 @router.get("", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
     settings = get_settings()

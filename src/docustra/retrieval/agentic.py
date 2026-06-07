@@ -100,8 +100,7 @@ class AgenticRAG(BaseRAGStrategy):
                 if msg.tool_calls:
                     tool_calls_made.extend([tc["name"] for tc in msg.tool_calls])
                 else:
-                    final_answer = msg.content
-
+                    final_answer = msg.content  # type: ignore[union-attr]
         return RAGResponse(
             answer=final_answer or "No answer generated.",
             pattern=self.pattern,

@@ -32,7 +32,7 @@ class HyDERAG(BaseRAGStrategy):
         hypothetical_doc = (
             (get_prompt("hyde", "hypothetical_doc") | self._llm)
             .invoke({"question": question})
-            .content.strip()
+            .content.strip()  # type: ignore[union-attr]
         )
         logger.info("Generated hypothetical doc", preview=hypothetical_doc[:100])
 
@@ -44,7 +44,7 @@ class HyDERAG(BaseRAGStrategy):
         answer = (
             (get_prompt("shared", "citation_rag") | self._llm)
             .invoke({"context": context, "question": question})
-            .content
+            .content  # type: ignore[union-attr]
         )
 
         return RAGResponse(

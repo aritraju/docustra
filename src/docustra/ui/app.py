@@ -382,8 +382,33 @@ def _fetch_health() -> dict:
 
 @st.cache_data(ttl=20)
 def _fetch_qdrant_stats() -> dict:
+    """Fetch collection stats via the FastAPI /health/qdrant-stats proxy endpoint,
+    falling back to a direct Qdrant call using the URL and collection name from
+    the API's own settings so we never hardcode either value here."""
+    # Primary: ask our own API (avoids duplicating config in the UI layer)
     try:
-        r = requests.get("http://localhost:6333/collections/docustra_docs", timeout=3)
+        r = requests.get(f"{API_BASE}/health/qdrant-stats", timeout=3)
+        if r.ok:
+            return r.json()
+    except Exception:
+        pass
+
+    # Fallback: hit Qdrant directly via the API's reported base URL
+    try:
+        cfg_r = requests.get(f"{API_BASE}/health/config", timeout=3)
+        qdrant_url = (
+            cfg_r.json().get("qdrant_url", "http://localhost:6333")
+            if cfg_r.ok
+            else "http://localhost:6333"
+        )
+        collection = (
+            cfg_r.json().get("qdrant_collection", "docustra_docs") if cfg_r.ok else "docustra_docs"
+        )
+    except Exception:
+        qdrant_url, collection = "http://localhost:6333", "docustra_docs"
+
+    try:
+        r = requests.get(f"{qdrant_url}/collections/{collection}", timeout=3)
         if r.ok:
             info = r.json().get("result", {})
             return {

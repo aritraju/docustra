@@ -47,10 +47,11 @@ class GraphRAG(BaseRAGStrategy):
                 {
                     "question": question,
                     "text_context": text_context,
-                    "graph_context": graph_context or "No relationship data found in knowledge graph.",
+                    "graph_context": graph_context
+                    or "No relationship data found in knowledge graph.",
                 }
             )
-            .content
+            .content  # type: ignore[union-attr]
         )
 
         return RAGResponse(
@@ -79,7 +80,7 @@ class GraphRAG(BaseRAGStrategy):
         raw = (
             (get_prompt("graph", "entity_extract") | self._llm)
             .invoke({"question": question})
-            .content.strip()
+            .content.strip()  # type: ignore[union-attr]
         )
         # Try JSON array first, fall back to comma-separated
         try:

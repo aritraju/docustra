@@ -71,8 +71,7 @@ class MultimodalRAG(BaseRAGStrategy):
                 "text_context": text_context,
                 "image_context": image_context,
             }
-        ).content
-
+        ).content  # type: ignore[union-attr]
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
@@ -96,7 +95,7 @@ class MultimodalRAG(BaseRAGStrategy):
                 ]
             )
             response = self._vision_llm.invoke([message])
-            return response.content
+            return response.content  # type: ignore[union-attr]
         except Exception as e:
             logger.warning("Image description failed", error=str(e))
             return ""

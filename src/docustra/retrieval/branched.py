@@ -42,7 +42,7 @@ class BranchedRAG(BaseRAGStrategy):
         final_answer = (
             (get_prompt("branched", "synthesize") | self._llm)
             .invoke({"question": question, "answers": sub_answers_text})
-            .content
+            .content  # type: ignore[union-attr]
         )
 
         seen: set[str] = set()
@@ -73,7 +73,11 @@ class BranchedRAG(BaseRAGStrategy):
         )
 
     def _decompose(self, question: str) -> list[str]:
-        raw = (get_prompt("branched", "decompose") | self._llm).invoke({"question": question}).content.strip()
+        raw = (
+            (get_prompt("branched", "decompose") | self._llm)
+            .invoke({"question": question})
+            .content.strip()  # type: ignore[union-attr]
+        )
         lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
         return [ln for ln in lines if len(ln) > 10][:4]
 
@@ -83,6 +87,6 @@ class BranchedRAG(BaseRAGStrategy):
         answer = (
             (get_prompt("branched", "branch_answer") | self._llm)
             .invoke({"context": context, "question": sub_question})
-            .content
+            .content  # type: ignore[union-attr]
         )
         return answer, docs

@@ -82,7 +82,9 @@ def get_prompt(module: str, key: str, version: str | None = None) -> ChatPromptT
 
     prompt_def = data[key]
     if not isinstance(prompt_def, dict):
-        raise ValueError(f"Prompt '{key}' in {module}.yaml must be a dict with 'system'/'human' keys")
+        raise ValueError(
+            f"Prompt '{key}' in {module}.yaml must be a dict with 'system'/'human' keys"
+        )
 
     messages: list[tuple[str, str]] = []
     if "system" in prompt_def:

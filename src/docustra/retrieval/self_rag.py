@@ -48,7 +48,7 @@ class SelfRAG(BaseRAGStrategy):
         retrieve_raw = (
             (get_prompt("self_rag", "retrieve_token") | self._llm)
             .invoke({"question": question})
-            .content.strip()
+            .content.strip()  # type: ignore[union-attr]
             .upper()
         )
         tokens.retrieve = "YES" in retrieve_raw
@@ -63,7 +63,7 @@ class SelfRAG(BaseRAGStrategy):
                     | self._llm
                 )
                 .invoke({"question": question})
-                .content
+                .content  # type: ignore[union-attr]
             )
             return RAGResponse(
                 answer=direct,
@@ -79,7 +79,7 @@ class SelfRAG(BaseRAGStrategy):
             relevance = (
                 (get_prompt("self_rag", "relevance_token") | self._llm)
                 .invoke({"question": question, "document": doc.page_content[:500]})
-                .content.strip()
+                .content.strip()  # type: ignore[union-attr]
                 .upper()
             )
             if "YES" in relevance:
@@ -96,14 +96,14 @@ class SelfRAG(BaseRAGStrategy):
         answer = (
             (get_prompt("shared", "citation_rag") | self._llm)
             .invoke({"context": context, "question": question})
-            .content
+            .content  # type: ignore[union-attr]
         )
 
         # [Supported] token
         supported_raw = (
             (get_prompt("self_rag", "support_token") | self._llm)
             .invoke({"context": context[:1000], "answer": answer[:500]})
-            .content.strip()
+            .content.strip()  # type: ignore[union-attr]
             .upper()
         )
         tokens.supported = "YES" in supported_raw or "PARTIALLY" in supported_raw
@@ -113,7 +113,7 @@ class SelfRAG(BaseRAGStrategy):
         useful_raw = (
             (get_prompt("self_rag", "useful_token") | self._llm)
             .invoke({"question": question, "answer": answer})
-            .content.strip()
+            .content.strip()  # type: ignore[union-attr]
             .upper()
         )
         tokens.useful = "YES" in useful_raw

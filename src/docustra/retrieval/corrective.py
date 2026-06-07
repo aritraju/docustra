@@ -64,8 +64,7 @@ class CorrectiveRAG(BaseRAGStrategy):
 
         context = "\n\n".join(d.page_content for d in docs)
         chain = get_prompt("shared", "citation_rag") | self._llm
-        answer = chain.invoke({"context": context, "question": question}).content
-
+        answer = chain.invoke({"context": context, "question": question}).content  # type: ignore[union-attr]
         return RAGResponse(
             answer=answer,
             pattern=self.pattern,
@@ -81,7 +80,7 @@ class CorrectiveRAG(BaseRAGStrategy):
 
     def _rewrite_query(self, question: str) -> str:
         chain = get_prompt("corrective", "rewrite_query") | self._llm
-        return chain.invoke({"question": question}).content.strip()
+        return chain.invoke({"question": question}).content.strip()  # type: ignore[union-attr]
 
     def _score_docs(self, question: str, docs: list[Document]) -> float:
         if not docs:
@@ -92,7 +91,7 @@ class CorrectiveRAG(BaseRAGStrategy):
                 chain = get_prompt("corrective", "relevance_score") | self._llm
                 raw = chain.invoke(
                     {"question": question, "document": doc.page_content[:500]}
-                ).content
+                ).content  # type: ignore[union-attr]
                 scores.append(float(raw.strip()))
             except (ValueError, Exception):
                 scores.append(0.5)
